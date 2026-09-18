@@ -2,6 +2,8 @@
 
 Backend-only REST API foundation built with Laravel 13 and PHP 8.4. The project intentionally contains no Vite configuration, Node package, frontend assets, Blade UI, public web route, Docker setup, or bundled MySQL server.
 
+The Laravel application lives in `src/`. Repository-level tooling, documentation, AI-agent instructions, and future Docker configuration live at the repository root.
+
 ## Requirements
 
 - PHP 8.4 with `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `hash`, `mbstring`, `openssl`, `pdo`, `pdo_mysql`, `session`, `sodium`, `tokenizer`, and `xml`
@@ -12,6 +14,7 @@ Backend-only REST API foundation built with Laravel 13 and PHP 8.4. The project 
 ## Installation
 
 ```bash
+cd src
 composer install
 cp .env.example .env
 php artisan key:generate
@@ -100,7 +103,10 @@ This task intentionally implements only the storage abstraction. It does **not**
 
 The target database is MySQL. Automated tests override it with isolated, in-memory SQLite and fake R2 storage; they never call Cloudflare.
 
+Run Laravel and Composer commands from `src/`:
+
 ```bash
+cd src
 php artisan migrate:fresh --env=testing
 php artisan test
 ./vendor/bin/pint --test
