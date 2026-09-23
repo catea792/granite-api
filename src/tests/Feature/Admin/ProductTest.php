@@ -17,7 +17,7 @@ final class ProductTest extends TestCase
     public function test_product_routes_require_authentication(): void
     {
         $this->getJson('/api/v1/admin/products')->assertUnauthorized()
-            ->assertJsonPath('error.code', 'AUTH_UNAUTHENTICATED');
+            ->assertJsonPath('error_code', 'AUTH_UNAUTHENTICATED');
     }
 
     public function test_list_is_paginated_without_laravel_urls_and_sorted_by_descending_id(): void
@@ -69,7 +69,7 @@ final class ProductTest extends TestCase
 
         $this->assertSoftDeleted('products', ['id' => $id]);
         $this->authenticated()->getJson("/api/v1/admin/products/{$id}")
-            ->assertNotFound()->assertJsonPath('error.code', 'RESOURCE_NOT_FOUND');
+            ->assertNotFound()->assertJsonPath('error_code', 'RESOURCE_NOT_FOUND');
     }
 
     public function test_validation_rejects_missing_invalid_unknown_and_read_only_fields(): void
@@ -81,7 +81,8 @@ final class ProductTest extends TestCase
         ]);
 
         $response->assertUnprocessable()
-            ->assertJsonPath('error.code', 'VALIDATION_FAILED')
+            ->assertJsonPath('error_code', 'VALIDATION_FAILED')
+            ->assertJsonPath('error_messages.issues.0.field', 'name')
             ->assertJsonFragment(['field' => 'name', 'code' => 'REQUIRED'])
             ->assertJsonFragment(['field' => 'is_active', 'code' => 'INVALID'])
             ->assertJsonFragment(['field' => 'id', 'code' => 'UNSUPPORTED_FIELD']);
@@ -103,7 +104,7 @@ final class ProductTest extends TestCase
             $client->getJson('/api/v1/admin/products')->assertOk();
         }
         $client->getJson('/api/v1/admin/products')
-            ->assertStatus(429)->assertJsonPath('error.code', 'RATE_LIMIT_EXCEEDED');
+            ->assertStatus(429)->assertJsonPath('error_code', 'RATE_LIMIT_EXCEEDED');
 
         $client = $this->authenticated()->withHeader('Origin', 'http://localhost');
         for ($attempt = 1; $attempt <= 60; $attempt++) {
@@ -113,7 +114,7 @@ final class ProductTest extends TestCase
             ])->assertCreated();
         }
         $client->postJson('/api/v1/admin/products', ['name' => 'Limited', 'is_active' => true])
-            ->assertStatus(429)->assertJsonPath('error.code', 'RATE_LIMIT_EXCEEDED');
+            ->assertStatus(429)->assertJsonPath('error_code', 'RATE_LIMIT_EXCEEDED');
     }
 
     private function authenticated(): self

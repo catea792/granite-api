@@ -45,7 +45,12 @@ class AuthenticateAdminJwt
         try {
             $isRevoked = DB::table('revoked_jwt_tokens')->where('jti', $authenticated->jti)->exists();
         } catch (QueryException $exception) {
-            throw new ApiException('AUTH_SERVICE_UNAVAILABLE', 'Dịch vụ xác thực tạm thời không khả dụng.', 503);
+            throw new ApiException(
+                'AUTH_SERVICE_UNAVAILABLE',
+                'Dịch vụ xác thực tạm thời không khả dụng.',
+                503,
+                previous: $exception,
+            );
         }
 
         if ($isRevoked) {

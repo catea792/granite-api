@@ -385,7 +385,7 @@ granite-nginx   RUNNING
 php-fpm         RUNNING
 ```
 
-Supervisor control port `19001` chỉ tồn tại trong container và không được publish ra máy host. Cấu hình Supervisor hiện tại được giữ nguyên; việc chuyển PID/log runtime hoặc đổi control socket sẽ được đánh giá riêng.
+Supervisor control port `19001` chỉ tồn tại trong container và không được publish ra máy host. PID và log runtime của Supervisor được đặt trong `/tmp` của container, không ghi vào source đang mount. Output của PHP-FPM và Nginx được chuyển tới stdout/stderr để có thể xem bằng `docker compose logs`.
 
 ## Scheduler
 
@@ -491,27 +491,63 @@ docker compose config
 
 ## Kiến trúc và quy ước response
 
-API error trả về stable error code, thông báo tiếng Việt, details và request ID:
+Các success response thông thường có một khóa `data` duy nhất. Giá trị `null`, array rỗng, chuỗi rỗng, `false` và `0` được giữ nguyên:
 
 ```json
 {
-  "error": {
-    "code": "VALIDATION_FAILED",
-    "message": "Dữ liệu gửi lên không hợp lệ.",
-    "details": {
-      "issues": [
-        {
-          "field": "name",
-          "code": "REQUIRED",
-          "message": "Tên sản phẩm là bắt buộc."
-        }
-      ]
-    }
-  },
-  "request_id": "01J8Z4Y6BCDEFGHJKMNPQRSTVW"
+  "data": {
+    "id": 1,
+    "name": "Granite reference"
+  }
 }
 ```
 
-`X-Request-ID` từ client chỉ được chấp nhận khi là ULID hợp lệ. Response đã xác thực có `Cache-Control: no-store`; unexpected exception được log phía server và không lộ SQL, stack trace, path hoặc secret cho client.
+Response phân trang trả resource đã transform và metadata trực tiếp, không trả Laravel pagination URL hoặc `links`:
+
+```json
+{
+  "data": [],
+  "meta": {
+    "total": 0,
+    "per_page": 20,
+    "current_page": 1,
+    "last_page": 1
+  }
+}
+```
+
+API error thông thường sử dụng một error code ổn định và thông báo tiếng Việt:
+
+```json
+{
+  "data": null,
+  "error_messages": "Bạn chưa đăng nhập.",
+  "error_code": "AUTH_UNAUTHENTICATED"
+}
+```
+
+Validation error giữ danh sách issue theo field:
+
+```json
+{
+  "data": null,
+  "error_messages": {
+    "issues": [
+      {
+        "field": "name",
+        "code": "REQUIRED",
+        "message": "Tên sản phẩm là bắt buộc."
+      }
+    ]
+  },
+  "error_code": "VALIDATION_FAILED"
+}
+```
+
+Delete và logout thành công trả `204 No Content`, không có JSON body.
+
+`X-Request-ID` chỉ nằm trong response header, không nằm trong JSON body. Request ID do client gửi chỉ được chấp nhận khi là ULID hợp lệ; nếu không, application tự sinh ULID mới. Response đã xác thực có `Cache-Control: no-store`; các header giao thức như `Retry-After` và `Allow` được giữ lại trên error response.
+
+Các lỗi dự kiến dưới `500` không được report. Custom error từ `500` trở lên và unexpected exception được Laravel ghi log; `ApiException` bổ sung `error_code` và `http_status` vào log context, còn request ID được gắn qua request context. Nội dung lỗi hệ thống trả cho client luôn được sanitize, không lộ SQL, stack trace, path hoặc secret.
 
 Xem thêm quyết định kiến trúc tại [docs/architecture.md](docs/architecture.md).

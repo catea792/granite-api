@@ -60,10 +60,10 @@ final class AdminAuthTest extends TestCase
         ]);
 
         $response->assertUnprocessable()
-            ->assertJsonPath('error.code', 'VALIDATION_FAILED')
-            ->assertJsonPath('error.details.issues.0.field', 'email')
+            ->assertJsonPath('error_code', 'VALIDATION_FAILED')
+            ->assertJsonPath('error_messages.issues.0.field', 'email')
             ->assertJsonFragment(['field' => 'unexpected', 'code' => 'UNSUPPORTED_FIELD']);
-        $this->assertMatchesRegularExpression('/^[0-9A-HJKMNP-TV-Z]{26}$/', (string) $response->json('request_id'));
+        $this->assertMatchesRegularExpression('/^[0-9A-HJKMNP-TV-Z]{26}$/', (string) $response->headers->get('X-Request-ID'));
     }
 
     public function test_invalid_credentials_do_not_disclose_whether_email_exists(): void
@@ -82,9 +82,9 @@ final class AdminAuthTest extends TestCase
             'password' => 'wrong-password',
         ]);
 
-        $known->assertUnauthorized()->assertJsonPath('error.code', 'AUTH_INVALID_CREDENTIALS');
-        $unknown->assertUnauthorized()->assertJsonPath('error.code', 'AUTH_INVALID_CREDENTIALS');
-        $this->assertSame($known->json('error.message'), $unknown->json('error.message'));
+        $known->assertUnauthorized()->assertJsonPath('error_code', 'AUTH_INVALID_CREDENTIALS');
+        $unknown->assertUnauthorized()->assertJsonPath('error_code', 'AUTH_INVALID_CREDENTIALS');
+        $this->assertSame($known->json('error_messages'), $unknown->json('error_messages'));
     }
 
     public function test_login_throttles_sixth_failure_and_success_resets_counter(): void
@@ -98,7 +98,10 @@ final class AdminAuthTest extends TestCase
             $this->login('wrong-password')->assertUnauthorized();
         }
 
-        $this->login('wrong-password')->assertStatus(429)->assertJsonPath('error.code', 'RATE_LIMIT_EXCEEDED');
+        $limited = $this->login('wrong-password');
+        $limited->assertStatus(429)
+            ->assertJsonPath('error_code', 'RATE_LIMIT_EXCEEDED')
+            ->assertHeader('Retry-After');
 
         RateLimiter::clear($this->loginRateKey('admin@example.com'));
         $this->login('wrong-password')->assertUnauthorized();
@@ -109,7 +112,7 @@ final class AdminAuthTest extends TestCase
     public function test_unsafe_admin_requests_require_exact_trusted_origin(): void
     {
         $this->postJson('/api/v1/admin/auth/login', [])->assertForbidden()
-            ->assertJsonPath('error.code', 'ORIGIN_NOT_ALLOWED');
+            ->assertJsonPath('error_code', 'ORIGIN_NOT_ALLOWED');
         $this->withHeader('Origin', 'https://evil.example')->postJson('/api/v1/admin/auth/login', [])->assertForbidden();
     }
 
@@ -119,7 +122,7 @@ final class AdminAuthTest extends TestCase
 
         $this->withToken($token)->getJson('/api/v1/admin/products')
             ->assertUnauthorized()
-            ->assertJsonPath('error.code', 'AUTH_UNAUTHENTICATED');
+            ->assertJsonPath('error_code', 'AUTH_UNAUTHENTICATED');
     }
 
     public function test_hosted_cookie_uses_host_prefix_and_secure_flag(): void
@@ -167,7 +170,7 @@ final class AdminAuthTest extends TestCase
         $this->withCredentials()->withUnencryptedCookie('granite_admin_token_local', $token)
             ->getJson('/api/v1/admin/products')
             ->assertUnauthorized()
-            ->assertJsonPath('error.code', 'AUTH_UNAUTHENTICATED');
+            ->assertJsonPath('error_code', 'AUTH_UNAUTHENTICATED');
     }
 
     public function test_expired_token_is_rejected_and_stale_logout_cookie_is_expired(): void
@@ -218,7 +221,7 @@ final class AdminAuthTest extends TestCase
             ->postJson('/api/v1/admin/auth/logout');
 
         $response->assertStatus(503)
-            ->assertJsonPath('error.code', 'AUTH_SERVICE_UNAVAILABLE')
+            ->assertJsonPath('error_code', 'AUTH_SERVICE_UNAVAILABLE')
             ->assertCookieMissing('granite_admin_token_local');
     }
 

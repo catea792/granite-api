@@ -29,8 +29,13 @@ final class LogoutController extends Controller
                 'expires_at' => $request->attributes->get('jwt_expires_at'),
                 'revoked_at' => CarbonImmutable::now('UTC'),
             ]);
-        } catch (QueryException) {
-            throw new ApiException('AUTH_SERVICE_UNAVAILABLE', 'Không thể thu hồi phiên đăng nhập lúc này.', 503);
+        } catch (QueryException $exception) {
+            throw new ApiException(
+                'AUTH_SERVICE_UNAVAILABLE',
+                'Không thể thu hồi phiên đăng nhập lúc này.',
+                503,
+                previous: $exception,
+            );
         }
 
         $response = response()->noContent();

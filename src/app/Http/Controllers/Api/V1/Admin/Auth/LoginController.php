@@ -37,8 +37,7 @@ final class LoginController extends Controller
                 'RATE_LIMIT_EXCEEDED',
                 'Bạn đã đăng nhập sai quá nhiều lần. Vui lòng thử lại sau.',
                 429,
-                ['retry_after_seconds' => $retryAfter],
-                ['Retry-After' => (string) $retryAfter],
+                headers: ['Retry-After' => (string) $retryAfter],
             );
         }
 

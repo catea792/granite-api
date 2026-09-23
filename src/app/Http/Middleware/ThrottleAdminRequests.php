@@ -32,8 +32,7 @@ class ThrottleAdminRequests
                 'RATE_LIMIT_EXCEEDED',
                 'Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau.',
                 429,
-                ['retry_after_seconds' => $retryAfter],
-                ['Retry-After' => (string) $retryAfter],
+                headers: ['Retry-After' => (string) $retryAfter],
             );
         }
 
