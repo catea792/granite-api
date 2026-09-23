@@ -8,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Admin\ListProductsRequest;
 use App\Http\Requests\Api\V1\Admin\StoreProductRequest;
 use App\Http\Requests\Api\V1\Admin\UpdateProductRequest;
-use App\Http\Resources\Api\V1\Admin\ProductCollection;
 use App\Http\Resources\Api\V1\Admin\ProductResource;
 use App\Models\Product;
 use App\Services\ProductService;
@@ -22,9 +21,11 @@ final class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(ListProductsRequest $request): ProductCollection
+    public function index(ListProductsRequest $request): JsonResponse
     {
-        return new ProductCollection($this->products->paginate($request->perPage()));
+        return responsePaginate(
+            ProductResource::collection($this->products->paginate($request->perPage())),
+        );
     }
 
     /**
@@ -34,23 +35,23 @@ final class ProductController extends Controller
     {
         $product = $this->products->create($request->validated());
 
-        return (new ProductResource($product))->response()->setStatusCode(Response::HTTP_CREATED);
+        return responseOk(new ProductResource($product), Response::HTTP_CREATED);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Product $product): ProductResource
+    public function show(Product $product): JsonResponse
     {
-        return new ProductResource($product);
+        return responseOk(new ProductResource($product));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateProductRequest $request, Product $product): ProductResource
+    public function update(UpdateProductRequest $request, Product $product): JsonResponse
     {
-        return new ProductResource($this->products->update($product, $request->validated()));
+        return responseOk(new ProductResource($this->products->update($product, $request->validated())));
     }
 
     /**

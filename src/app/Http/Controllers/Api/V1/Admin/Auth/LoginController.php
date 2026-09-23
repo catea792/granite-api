@@ -55,11 +55,9 @@ final class LoginController extends Controller
 
         RateLimiter::clear($key);
         $token = $this->tokens->issue($admin);
-        $response = response()->json([
-            'data' => [
-                'admin' => ['id' => $admin->getKey(), 'email' => $admin->email],
-                'expires_in' => (int) config('admin_auth.ttl_minutes') * 60,
-            ],
+        $response = responseOk([
+            'admin' => ['id' => $admin->getKey(), 'email' => $admin->email],
+            'expires_in' => (int) config('admin_auth.ttl_minutes') * 60,
         ]);
         $response->headers->setCookie($this->cookies->make($request, $token));
         $response->headers->set('Cache-Control', 'no-store');

@@ -30,12 +30,13 @@ final class ProductTest extends TestCase
             ->assertJsonCount(2, 'data')
             ->assertJsonPath('data.0.id', 3)
             ->assertJsonPath('data.1.id', 2)
-            ->assertJsonPath('meta.pagination.current_page', 1)
-            ->assertJsonPath('meta.pagination.per_page', 2)
-            ->assertJsonPath('meta.pagination.total', 3)
-            ->assertJsonPath('meta.pagination.last_page', 2)
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.per_page', 2)
+            ->assertJsonPath('meta.total', 3)
+            ->assertJsonPath('meta.last_page', 2)
             ->assertJsonMissingPath('links')
-            ->assertJsonMissingPath('meta.path');
+            ->assertJsonMissingPath('meta.path')
+            ->assertJsonMissingPath('meta.pagination');
     }
 
     public function test_create_show_patch_noop_and_delete_follow_exact_resource_contract(): void
